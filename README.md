@@ -1,80 +1,56 @@
-<p align="center">
-  <img src="https://img.shields.io/badge/MCU-nRF52840-blue?style=flat-square" alt="nRF52840"/>
-  <img src="https://img.shields.io/badge/RTOS-Zephyr-green?style=flat-square" alt="Zephyr"/>
-  <img src="https://img.shields.io/badge/SDK-nRF_Connect-red?style=flat-square" alt="nRF Connect SDK"/>
-  <img src="https://img.shields.io/badge/Sensor-Temperature-yellow?style=flat-square" alt="Temperature"/>
-  <img src="https://img.shields.io/badge/License-MIT-lightgrey?style=flat-square" alt="MIT"/>
-</p>
+# fw-nrf52840-dk-thermometer
 
-# nRF52840 DK — Leitura de Temperatura Interna do Chip
+Die temperature readout on the nRF52840 DK using the Zephyr sensor API. Zephyr RTOS, nRF Connect SDK.
 
-Projeto desenvolvido com o **nRF Connect SDK (Zephyr RTOS)** para leitura da temperatura interna do chip nRF52840 utilizando o sensor de temperatura integrado (`TEMP` peripheral).
+## What it does
 
-## Hardware utilizado
+Reads the internal die temperature of the nRF52840 (`TEMP` peripheral) once per second with `sensor_sample_fetch()` and `sensor_channel_get()` on `SENSOR_CHAN_DIE_TEMP`, and prints it to the console. It also sets lower and upper threshold alerts and runs a callback when the temperature leaves them.
 
-- **nRF52840 DK** (Nordic Semiconductor)
-
-## Descrição
-
-O firmware lê a temperatura interna do die do nRF52840 a cada 1 segundo e exibe o valor no console serial (RTT/UART). Utiliza a API de sensores do Zephyr (`sensor_sample_fetch` / `sensor_channel_get`) com o canal `SENSOR_CHAN_DIE_TEMP`.
-
-Funcionalidades:
-- Leitura periódica da temperatura a **1 Hz**
-- Configuração de **alertas de threshold** (inferior e superior)
-- Callback de alerta quando a temperatura ultrapassa os limites definidos
-
-## Estrutura do projeto
-
-```
-thermometer/
-├── src/
-│   └── main.c                          # Código principal
-├── boards/
-│   ├── nrf52840dk_nrf52840.overlay     # Habilita o nó &temp e define o alias
-│   └── nrf52840dk_nrf52840.conf        # CONFIG_TEMP_NRF5=y
-├── CMakeLists.txt
-├── prj.conf
-└── README.md
-```
-
-## Como compilar e gravar
-
-Usando o **nRF Connect for VS Code** ou via terminal com West:
-
-```bash
-west build -b nrf52840dk/nrf52840
-west flash
-
-ou
-
-west build -b nrf52840dk/nrf52840 --pristine
-west flash --runner jlink
-```
-
-## Saída esperada no console
+Expected output:
 
 ```
 Thermometer Example (arm)
 Temperature device is 0x..., name is temp@4000c000
-Temperature is 28.0°C
-Temperature is 28.2°C
-Temperature is 28.5°C
-...
+Temperature is 28.0 C
+Temperature is 28.2 C
 ```
 
-## Dependências
+Relevant configuration:
 
-- [nRF Connect SDK v3.0.2](https://developer.nordicsemi.com/nRF_Connect_SDK/doc/latest/nrf/index.html)
-- Zephyr RTOS (incluso no NCS)
-
-## Configurações relevantes
-
-| Arquivo | Configuração | Descrição |
+| File | Option | Purpose |
 |---|---|---|
-| `prj.conf` | `CONFIG_SENSOR=y` | Habilita a subsystem de sensores |
-| `prj.conf` | `CONFIG_CBPRINTF_FP_SUPPORT=y` | Suporte a ponto flutuante no printf |
-| `boards/nrf52840dk_nrf52840.conf` | `CONFIG_TEMP_NRF5=y` | Driver do sensor de temperatura nRF5 |
+| `prj.conf` | `CONFIG_SENSOR=y` | sensor subsystem |
+| `prj.conf` | `CONFIG_CBPRINTF_FP_SUPPORT=y` | floating point in printf |
+| `boards/nrf52840dk_nrf52840.conf` | `CONFIG_TEMP_NRF5=y` | nRF5 temperature driver |
 
-## Autor
+The `boards/` folder also holds overlays for other boards that come with the Zephyr sample; this project targets the nRF52840 DK.
 
-[Dante-138](https://github.com/Dante-138)
+## Hardware
+
+| Item | Detail |
+|---|---|
+| Board | nRF52840 DK |
+| Sensor | on-die temperature sensor (`TEMP`), no external parts |
+| Console | RTT or UART through the J-Link VCOM |
+
+## Build
+
+Requires nRF Connect SDK v3.0.2 or compatible.
+
+```bash
+west build -b nrf52840dk/nrf52840 --pristine
+```
+
+## Flash
+
+```bash
+west flash --runner jlink
+```
+
+## Test
+
+Open the serial console (115200 8N1) or RTT. A new temperature line should appear every second. Warming the chip, for example by touching it, should raise the value.
+
+## License
+
+MIT, see [LICENSE](LICENSE).
