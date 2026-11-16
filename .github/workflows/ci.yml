@@ -1,0 +1,70 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: Build
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    # Official nRF Connect SDK toolchain image, v3.0.2 (the SDK version the
+    # README was tested with), pinned by digest.
+    container:
+      image: ghcr.io/nrfconnect/sdk-nrf-toolchain@sha256:799bef8540f7b8e9bb2c604897d48477e8c8c8a00c72d58c5c853e162463e0a5
+    defaults:
+      run:
+        # bash loads the toolchain environment of the image (BASH_ENV); the
+        # default sh would not find west.
+        shell: bash
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          path: app
+          persist-credentials: false
+
+      # The SDK is not part of this repository. This manifest exists only in
+      # CI: it pins nRF Connect SDK v3.0.2 and fetches only the modules an
+      # nRF52 application needs, so the job does not download the whole SDK.
+      - name: Fetch nRF Connect SDK v3.0.2
+        run: |
+          mkdir -p manifest
+          cat > manifest/west.yml <<'MANIFEST'
+          manifest:
+            version: "0.13"
+            remotes:
+              - name: ncs
+                url-base: https://github.com/nrfconnect
+            projects:
+              - name: nrf
+                remote: ncs
+                repo-path: sdk-nrf
+                revision: v3.0.2
+                import:
+                  name-allowlist:
+                    - zephyr
+                    - nrfxlib
+                    - cmsis
+                    - hal_nordic
+                    - segger
+                    - mbedtls
+                    - oberon-psa-crypto
+                    - tinycrypt
+                    - zcbor
+                    - picolibc
+          MANIFEST
+          west init -l manifest
+          # --narrow and depth 1: fetch only the pinned commits, not the history.
+          west update --narrow -o=--depth=1
+
+      - name: Build for nrf52840dk/nrf52840, as in the README
+        run: west build --pristine always -b nrf52840dk/nrf52840 -d build app
