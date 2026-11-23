@@ -1,0 +1,17 @@
+# Weekly, grouped PRs for the actions used by the workflows. cooldown: only
+# propose versions published at least 7 days ago (a compromised release is
+# usually pulled within the first days).
+version: 2
+updates:
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+    cooldown:
+      default-days: 7
+    commit-message:
+      prefix: ci
+    groups:
+      actions:
+        patterns: ['*']
